@@ -24,63 +24,22 @@ udp.listen( true ); // and wait for incoming message
 
 void draw()
 {
-if (flicker == 1){
-if (previousMillis < millis() - interval){
-previousMillis = previousMillis + interval;
-if (light == 0){
-byte[] message = new byte[2];
-message[0] = 0;
-message[1] = 0;
-udp.send(message, ip , port);
-light = 1;
-}
-else {
+
+
 byte[] message = new byte[2];
 message[0] = 0;
 message[1] = 1;
 udp.send(message, ip , port);
-light = 0;
-}
-}
-}
+
 }
 
 void keyPressed() {
 
-if (key == 'f'){
-if (flicker == 1){
-flicker = 0;
-byte[] message = new byte[2];
-message[0] = 0;
-message[1] = 0;
-udp.send(message, ip , port);
-light = 0;
-}
-else{
-flicker = 1;
-}
-}
-else {
-if (flicker == 0 && held == 0){
-byte[] message = new byte[2];
-message[0] = 0;
-message[1] = 1;
-udp.send(message, ip , port);
-held = 1;
-}
-}
+
 }
 
 void keyReleased(){
-if (key != 'f'){
-if (flicker == 0){
-byte[] message = new byte[2];
-message[0] = 0;
-message[1] = 0;
-udp.send(message, ip , port);
-held = 0;
-}
-}
+
 }
 
 void receive( byte[] data ) { // <– default handler
