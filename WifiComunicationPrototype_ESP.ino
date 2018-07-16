@@ -10,27 +10,25 @@ union {
    return u.f;
 }
 
-void float2Bytes(float input , byte* arr){
- union float2bytes { float f; char b[sizeof(float)]; };
- 
- float2bytes f2b;
- 
- float x;
- f2b.f = x;
- for ( int i=0; i < sizeof(float); i++ )
-   send_byte(f2b.b[i]);
 
- for ( int i=0; i < sizeof(float); i++ )
-   f2b.b[i] = read_byte();
+struct orintationTable {
+  double Xgyro;
+  double Ygyro;
+  double Xaccel;
+  double Yaccel;
+};
 
- x = f2b.f;
-  
-  for(int i; i < 4; i++){
-  arr[i] = f2b.b[i];
-  }
+void float2Bytes(float val,byte* bytes_array){
+  // Create union of shared memory space
+  union {
+    float float_variable;
+    byte temp_array[4];
+  } u;
+  // Overite bytes of union with float variable
+  u.float_variable = val;
+  // Assign bytes to input array
+  memcpy(bytes_array, u.temp_array, 4);
 }
-
-
 
 
 //create two objects
@@ -55,6 +53,35 @@ struct SEND_DATA_STRUCTURE{
 RECEIVE_DATA_STRUCTURE rxdata;
 SEND_DATA_STRUCTURE txdata;
 
+void composeMessage(){
+        ETin.receiveData();
+            int pointGyro;
+        ReplyBuffer = float2Bytes(rxdata.gyro1.Xgyro,&ReplyBuffer[pointGyro]);
+        pointGyro = pointGyro + 4;
+        ReplyBuffer = float2Bytes(rxdata.gyro1.Ygyro,&ReplyBuffer[pointGyro]);
+        pointGyro = pointGyro + 4;
+        ReplyBuffer = float2Bytes(rxdata.gyro2.Xgyro,&ReplyBuffer[pointGyro]);
+        pointGyro = pointGyro + 4;
+        ReplyBuffer = float2Bytes(rxdata.gyro2.Ygyro,&ReplyBuffer[pointGyro]);
+        pointGyro = pointGyro + 4;
+        ReplyBuffer = float2Bytes(rxdata.gyro3.Xgyro,&ReplyBuffer[pointGyro]);
+        pointGyro = pointGyro + 4;
+        ReplyBuffer = float2Bytes(rxdata.gyro3.Ygyro,&ReplyBuffer[pointGyro]);
+        pointGyro = pointGyro + 4;
+        
+        ReplyBuffer = float2Bytes(rxdata.gyro1.Xaccel,&ReplyBuffer[pointGyro]);
+        pointGyro = pointGyro + 4;
+        ReplyBuffer = float2Bytes(rxdata.gyro1.Yaccel,&ReplyBuffer[pointGyro]);
+        pointGyro = pointGyro + 4;
+        ReplyBuffer = float2Bytes(rxdata.gyro2.Xaccel,&ReplyBuffer[pointGyro]);
+        pointGyro = pointGyro + 4;
+        ReplyBuffer = float2Bytes(rxdata.gyro2.Yaccel,&ReplyBuffer[pointGyro]);
+        pointGyro = pointGyro + 4;
+        ReplyBuffer = float2Bytes(rxdata.gyro3.Xaccel,&ReplyBuffer[pointGyro]);
+        pointGyro = pointGyro + 4;
+        ReplyBuffer = float2Bytes(rxdata.gyro3.Yaccel,&ReplyBuffer[pointGyro]);
+        pointGyro = pointGyro + 4;
+        }
 
 #include <ESP8266WiFi.h>
 #include <WiFiUDP.h>
@@ -69,7 +96,7 @@ unsigned int localPort = 8888;
 WiFiUDP UDP;
 boolean udpConnected = false;
 char packetBuffer[UDP_TX_PACKET_MAX_SIZE]; //buffer to hold incoming packet,
-char ReplyBuffer[] = "acknowledged"; // a string to send back
+char ReplyBuffer[]; // a string to send back
 
 void setup() {
 // Initialise Serial connection
@@ -125,7 +152,10 @@ void loop() {
           bP = bP + 4;
         }
       }
-         
+        rxdata.poseTable = fullPose;
+        ETout.sendData();
+        
+    composeMessage();
     UDP.beginPacket(UDP.remoteIP(), UDP.remotePort());
     UDP.write(ReplyBuffer);
     UDP.endPacket();
