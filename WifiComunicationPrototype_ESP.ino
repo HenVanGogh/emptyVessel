@@ -1,5 +1,38 @@
 #include <EasyTransfer.h>
 
+float convertToFloat(unsigned char a,unsigned char b,unsigned char c,unsigned char d){
+union {
+    float f;
+    unsigned long ul;
+ } u;
+ 
+   u.ul = (a << 24) | (b << 16) | (c << 8) | d;
+   return u.f;
+}
+
+void float2Bytes(float input , byte* arr){
+ union float2bytes { float f; char b[sizeof(float)]; };
+ 
+ float2bytes f2b;
+ 
+ float x;
+ f2b.f = x;
+ for ( int i=0; i < sizeof(float); i++ )
+   send_byte(f2b.b[i]);
+
+ for ( int i=0; i < sizeof(float); i++ )
+   f2b.b[i] = read_byte();
+
+ x = f2b.f;
+  
+  for(int i; i < 4; i++){
+  arr[i] = f2b.b[i];
+  }
+}
+
+
+
+
 //create two objects
 EasyTransfer ETin, ETout; 
 
@@ -57,44 +90,47 @@ pinMode(5,OUTPUT);
 
 void loop() {
 // check if the WiFi and UDP connections were successful
-if(wifiConnected){
-if(udpConnected){
+    if(wifiConnected){
+    if(udpConnected){
 
 // if there’s data available, read a packet
-int packetSize = UDP.parsePacket();
-if(packetSize)
-{
-Serial.println("");
-Serial.print("Received packet of size ");
-Serial.println(packetSize);
-Serial.print("From ");
-IPAddress remote = UDP.remoteIP();
-for (int i =0; i < 4; i++)
-{
-Serial.print(remote[i], DEC);
-if (i < 3)
-{
-Serial.print(".");
-}
-}
-Serial.print(", port ");
-Serial.println(UDP.remotePort());
+    int packetSize = UDP.parsePacket();
+    if(packetSize)
+    {
+    Serial.println("");
+    Serial.print("Received packet of size ");
+    Serial.println(packetSize);
+    Serial.print("From ");
+    IPAddress remote = UDP.remoteIP();
+    for (int i =0; i < 4; i++)
+    {
+    Serial.print(remote[i], DEC);
+    if (i < 3)
+    {
+    Serial.print(".");
+    }
+    }
+    Serial.print(", port ");
+    Serial.println(UDP.remotePort());
 
 // read the packet into packetBufffer
-UDP.read(packetBuffer,UDP_TX_PACKET_MAX_SIZE);
-Serial.println("Contents:");
-int value = packetBuffer[0]*256 + packetBuffer[1];
-Serial.println(value);
-
-// send a reply, to the IP address and port that sent us the packet we received
-UDP.beginPacket(UDP.remoteIP(), UDP.remotePort());
-UDP.write(ReplyBuffer);
-UDP.endPacket();
-
-// turn LED on or off depending on value recieved
-digitalWrite(5,value);
-}
-delay(10);
+    UDP.read(packetBuffer,UDP_TX_PACKET_MAX_SIZE);
+      
+      float fullPose[3][2];
+      
+      int bP = 0;
+      for(int i; i < 4; i++){
+        for(int n; n < 3; n++){
+         fullPose[i][n] = convertToFloat(packetBuffer[bP] , packetBuffer[bP + 1] , packetBuffer[bP + 2] , packetBuffer[bP + 3]);
+          bP = bP + 4;
+        }
+      }
+         
+    UDP.beginPacket(UDP.remoteIP(), UDP.remotePort());
+    UDP.write(ReplyBuffer);
+    UDP.endPacket();
+  }
+  delay(10);
 
 }
 
@@ -103,51 +139,51 @@ delay(10);
 }
 
 // connect to UDP – returns true if successful or false if not
-boolean connectUDP(){
-boolean state = false;
+  boolean connectUDP(){
+    boolean state = false;
 
-Serial.println("");
-Serial.println("Connecting to UDP");
+    Serial.println("");
+    Serial.println("Connecting to UDP");
 
-if(UDP.begin(localPort) == 1){
-Serial.println("Connection successful");
-state = true;
-}
-else{
-Serial.println("Connection failed");
-}
+    if(UDP.begin(localPort) == 1){
+      Serial.println("Connection successful");
+      state = true;
+    }
+    else{
+      Serial.println("Connection failed");
+    }
 
-return state;
-}
-// connect to wifi – returns true if successful or false if not
-boolean connectWifi(){
-boolean state = true;
-int i = 0;
-WiFi.begin(ssid, password);
-Serial.println("");
-Serial.println("Connecting to WiFi");
+    return state;
+  }
+    // connect to wifi – returns true if successful or false if not
+ boolean connectWifi(){
+  boolean state = true;
+  int i = 0;
+  WiFi.begin(ssid, password);
+  Serial.println("");
+  Serial.println("Connecting to WiFi");
 
-// Wait for connection
-Serial.print("Connecting");
-while (WiFi.status() != WL_CONNECTED) {
-delay(500);
-Serial.print(".");
-if (i > 10){
-state = false;
-break;
-}
-i++;
-}
-if (state){
-Serial.println("");
-Serial.print("Connected to ");
-Serial.println(ssid);
-Serial.print("IP address: ");
-Serial.println(WiFi.localIP());
-}
-else {
-Serial.println("");
-Serial.println("Connection failed.");
-}
-return state;
+    // Wait for connection
+  Serial.print("Connecting");
+  while (WiFi.status() != WL_CONNECTED) {
+   delay(500);
+   Serial.print(".");
+   if (i > 10){
+   state = false;
+   break;
+  }
+   i++;
+  }
+  if (state){
+   Serial.println("");
+   Serial.print("Connected to ");
+   Serial.println(ssid);
+   Serial.print("IP address: ");
+   Serial.println(WiFi.localIP());
+  }
+    else {
+  Serial.println("");
+  Serial.println("Connection failed.");
+  }
+  return state;
 }
