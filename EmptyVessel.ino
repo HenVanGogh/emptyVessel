@@ -188,6 +188,7 @@ struct RECEIVE_DATA_STRUCTURE{
   //put your variable definitions here for the data you want to receive
   //THIS MUST BE EXACTLY THE SAME ON THE OTHER ARDUINO
   int poseTable[3][2];
+  bool legsOn;
 };
 RECEIVE_DATA_STRUCTURE rxdata;
 SEND_DATA_STRUCTURE txdata;
@@ -514,12 +515,13 @@ void loop() {
     for(int i=0; i<5; i++){
     ETin.receiveData();
     }
-
+if(rxdata.legsOn){
 RunnerP1.Step(rxdata.poseTable[0][0] , rxdata.poseTable[0][1] , rxdata.poseTable[0][2]);
 RunnerP2.Step(rxdata.poseTable[1][0] , rxdata.poseTable[1][1] , rxdata.poseTable[1][2]);
 
 RunnerL1.Step(rxdata.poseTable[2][0] , rxdata.poseTable[2][1] , rxdata.poseTable[2][2]);
 RunnerL2.Step(rxdata.poseTable[3][0] , rxdata.poseTable[3][1] , rxdata.poseTable[3][2]);
+}
 
 fullReport();
 }

@@ -9,13 +9,15 @@ struct RECEIVE_DATA_STRUCTURE{
   orintationTable gyro1;
   orintationTable gyro2;
   orintationTable gyro3;
+  short int distance;
   
 };
 
 struct SEND_DATA_STRUCTURE{
   //put your variable definitions here for the data you want to receive
   //THIS MUST BE EXACTLY THE SAME ON THE OTHER ARDUINO
-  int[3][2] poseTable
+  int[3][2] poseTable;
+  bool legsOn;
 };
 
 //give a name to the group of data
