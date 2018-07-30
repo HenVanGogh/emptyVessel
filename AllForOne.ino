@@ -28,6 +28,49 @@ orintationTable Main;
 orintationTable Cal1;
 orintationTable Cal2;
 
+void float2Bytes(float val,char* bytes_array){
+  // Create union of shared memory space
+  union {
+    float float_variable;
+    byte temp_array[4];
+  } u;
+  // Overite bytes of union with float variable
+  u.float_variable = val;
+  // Assign bytes to input array
+  memcpy(bytes_array, u.temp_array, 4);
+}
+
+void composeMessage(){
+        ETin.receiveData();
+            int pointGyro = 0;
+        float2Bytes(gyro1.Xgyro,&ReplyBuffer[pointGyro]);
+        pointGyro = pointGyro + 4;
+        float2Bytes(gyro1.Ygyro,&ReplyBuffer[pointGyro]);
+        pointGyro = pointGyro + 4;
+        float2Bytes(gyro2.Xgyro,&ReplyBuffer[pointGyro]);
+        pointGyro = pointGyro + 4;
+        float2Bytes(gyro2.Ygyro,&ReplyBuffer[pointGyro]);
+        pointGyro = pointGyro + 4;
+        float2Bytes(gyro3.Xgyro,&ReplyBuffer[pointGyro]);
+        pointGyro = pointGyro + 4;
+        float2Bytes(gyro3.Ygyro,&ReplyBuffer[pointGyro]);
+        pointGyro = pointGyro + 4;
+        
+        float2Bytes(gyro1.Xaccel,&ReplyBuffer[pointGyro]);
+        pointGyro = pointGyro + 4;
+        float2Bytes(gyro1.Yaccel,&ReplyBuffer[pointGyro]);
+        pointGyro = pointGyro + 4;
+        float2Bytes(gyro2.Xaccel,&ReplyBuffer[pointGyro]);
+        pointGyro = pointGyro + 4;
+        float2Bytes(gyro2.Yaccel,&ReplyBuffer[pointGyro]);
+        pointGyro = pointGyro + 4;
+        float2Bytes(gyro3.Xaccel,&ReplyBuffer[pointGyro]);
+        pointGyro = pointGyro + 4;
+        float2Bytes(gyro3.Yaccel,&ReplyBuffer[pointGyro]);
+        
+        }
+
+
 void enableGyro(char which)
 {
   if (which == 1) {
@@ -194,6 +237,25 @@ void gryroSetup(){
   double Leg0 = 56.3, Leg1 = 167, Leg2 = 136;
   double radian = 57.2958;
 
+
+#include <ESP8266WiFi.h>
+#include <WiFiUDP.h>
+
+// wifi connection variables
+const char* ssid = "Jupi MK dom";
+const char* password = "pimpekpimpek";
+boolean wifiConnected = false;
+
+// UDP variables
+unsigned int localPort = 8888;
+WiFiUDP UDP;
+boolean udpConnected = false;
+char packetBuffer[UDP_TX_PACKET_MAX_SIZE]; //buffer to hold incoming packet,
+
+
+
+
+
 #include <math.h>
 #include <Wire.h>
 #include <Adafruit_PWMServoDriver.h>
@@ -227,7 +289,70 @@ gryroSetup();
 
 pwm.begin();
 pwm.setPWMFreq(100);
+
+wifiConnected = connectWifi();
+
+
+if(wifiConnected){
+udpConnected = connectUDP();
+if (udpConnected){
 }
+}
+}
+}
+
+
+
+ boolean connectUDP(){
+    boolean state = false;
+
+    Serial.println("");
+    Serial.println("Connecting to UDP");
+
+    if(UDP.begin(localPort) == 1){
+      Serial.println("Connection successful");
+      state = true;
+    }
+    else{
+      Serial.println("Connection failed");
+    }
+
+    return state;
+  }
+    // connect to wifi – returns true if successful or false if not
+ boolean connectWifi(){
+  boolean state = true;
+  int i = 0;
+  WiFi.begin(ssid, password);
+  Serial.println("");
+  Serial.println("Connecting to WiFi");
+
+    // Wait for connection
+  Serial.print("Connecting");
+  while (WiFi.status() != WL_CONNECTED) {
+   delay(500);
+   Serial.print(".");
+   if (i > 10){
+   state = false;
+   break;
+  }
+   i++;
+  }
+  if (state){
+   Serial.println("");
+   Serial.print("Connected to ");
+   Serial.println(ssid);
+   Serial.print("IP address: ");
+   Serial.println(WiFi.localIP());
+  }
+    else {
+  Serial.println("");
+  Serial.println("Connection failed.");
+  }
+  return state;
+}
+
+
 
 class Runner{
     bool Side;
@@ -447,14 +572,63 @@ Runner RunnerL1(L11,L12,L13,staL11,staL12,staL13,0,3);
 Runner RunnerL2(L21,L22,L23,staL21,staL22,staL23,0,4);
 
 void loop() {
+ if(wifiConnected){
+    if(udpConnected){
+
+// if there’s data available, read a packet
+    int packetSize = UDP.parsePacket();
+    if(packetSize)
+    {
+    Serial.println("");
+    Serial.print("Received packet of size ");
+    Serial.println(packetSize);
+    Serial.print("From ");
+    IPAddress remote = UDP.remoteIP();
+    for (int i =0; i < 4; i++)
+    {
+    Serial.print(remote[i], DEC);
+    if (i < 3)
+    {
+    Serial.print(".");
+    }
+    }
+    Serial.print(", port ");
+    Serial.println(UDP.remotePort());
+
+// read the packet into packetBufffer
+    UDP.read(packetBuffer,UDP_TX_PACKET_MAX_SIZE);
+      
+      float fullPose[3][2];
+      
+      int bP = 0;
+      for(int i; i < 4; i++){
+        for(int n; n < 3; n++){
+         fullPose[i][n] = convertToFloat(packetBuffer[bP] , packetBuffer[bP + 1] , packetBuffer[bP + 2] , packetBuffer[bP + 3]);
+          bP = bP + 4;
+        }
+      }
+      for(int i = 0 ; i < 4 ; i++){
+        for(int n = 0; n < 3; n++){
+        txdata.poseTable[i][n] = fullPose[i][n];
+        }
+      }
+  
+        
+    composeMessage();
+    UDP.beginPacket(UDP.remoteIP(), UDP.remotePort());
+    UDP.write(ReplyBuffer);
+    UDP.endPacket();
+  }
+
+
 
    
 if(legsOn){
-RunnerP1.Step(rxdata.poseTable[0][0] , rxdata.poseTable[0][1] , rxdata.poseTable[0][2]);
-RunnerP2.Step(rxdata.poseTable[1][0] , rxdata.poseTable[1][1] , rxdata.poseTable[1][2]);
+RunnerP1.Step(poseTable[0][0] , poseTable[0][1] , poseTable[0][2]);
+RunnerP2.Step(poseTable[1][0] , poseTable[1][1] , poseTable[1][2]);
 
-RunnerL1.Step(rxdata.poseTable[2][0] , rxdata.poseTable[2][1] , rxdata.poseTable[2][2]);
-RunnerL2.Step(rxdata.poseTable[3][0] , rxdata.poseTable[3][1] , rxdata.poseTable[3][2]);
+RunnerL1.Step(poseTable[2][0] , poseTable[2][1] , poseTable[2][2]);
+RunnerL2.Step(poseTable[3][0] , poseTable[3][1] , poseTable[3][2]);
 }
 
 
