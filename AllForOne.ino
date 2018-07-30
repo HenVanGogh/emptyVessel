@@ -366,7 +366,74 @@ public:
           }
                 }
                 
-        
+  void setConstans(double a, double b, double c){
+    if(a != 0){
+    St1 = a;
+    }
+    
+    if(b !=0){
+    St2 = b;
+    }
+    
+    if(c != 0){
+    St3 = c;
+    }
+    
+    
+      void setCurrentPosition(double a, double b, double c){
+    currentPosition[0] = a;
+    currentPosition[1] = b;
+    currentPosition[2] = c;
+  }
+  
+  int beginningPosition[2];
+  int currentPosition[2];
+  int desiredPosition[2];
+  float speedInAxis[2];
+  int endStep;
+  int currentstep = 0;
+    bool skip;
+  
+  
+  void setOjective(int x,int y,int z,int speed){
+    
+    beginningPosition[0] = currentPosition[0];
+    beginningPosition[1] = currentPosition[1];
+    beginningPosition[2] = currentPosition[2];
+    
+    desiredPosition[0] = x;
+    desiredPosition[1] = y;
+    desiredPosition[2] = z;
+    
+    endStep = speed;
+    
+    speedInAxis[0] = (desiredPosition[0] - beginningPosition[0]) / speed;
+    speedInAxis[1] = (desiredPosition[1] - beginningPosition[1]) / speed;
+    speedInAxis[2] = (desiredPosition[2] - beginningPosition[2]) / speed;
+    
+    skip = false;
+    currentstep = 0;
+  }
+    
+    
+  
+  void update(){
+    if(!skip){
+if(currentstep != endStep){
+    currentPosition[0] = currentPosition[0] + speedInAxis[0];
+    currentPosition[1] = currentPosition[1] + speedInAxis[1];
+    currentPosition[2] = currentPosition[2] + speedInAxis[2];
+    currentstep++;
+}else{
+  currentPosition[0] = desiredPosition[0];
+  currentPosition[1] = desiredPosition[1];
+  currentPosition[2] = desiredPosition[2]; 
+  skip = true;
+  }
+    }
+  }
+  
+  
         };
 
 
